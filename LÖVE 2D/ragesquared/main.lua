@@ -2,6 +2,9 @@ local timeleft = 3
 local timemax = timeleft
 local wx, wy = love.window.getMode() --wx and wy are the window x and y
 local gamestarted = false
+bgmusic = love.audio.newSource( 'thingy.wav', 'stream' )
+gameover = love.audio.newSource("sfx/scratch.wav","static")
+click = love.audio.newSource("sfx/click.wav","static")
 local coloredtext = {
   color1 = {255,0,0},
   string1 = "window"
@@ -38,17 +41,21 @@ function love.mousepressed(x, y, button)
              --random color for the next box
              timeleft    = timeleft + 1
              gamestarted = true
+             bgmusic:play()
+             click:play()
         end
     end
 end
 
 function love.update(Dt)
   if gamestarted then
-    timeleft = timeleft    - Dt
+    timeleft = timeleft    - Dt * (30+timeplayed)/30
     timeplayed = timeplayed + Dt
     if timeleft > timemax then timeleft = timemax end
   end
   if timeleft < 0 then
+    love.audio.stop( )
+    gameover:play()
     gamestarted = false
     timeleft = 3
     timeplayed = 0
