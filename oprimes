@@ -1,0 +1,29 @@
+function tabstr(a)
+  local tempstring = " \n contents of " .. tostring(a)
+  for k, v in pairs(a) do
+    tempstring = tempstring .. "\n key : \t" .. k .. "\t value :\t" .. v
+  end
+  return tempstring
+end
+
+function primeUp(num1)
+  local temptable = {2}
+  local j = #temptable + 1
+  for num = 3, num1 do
+    local cont = true
+    if num % 2 ~= 0 then
+      for k, kp in pairs(temptable) do
+        if num % kp == 0 then
+          cont = false
+        end
+      end
+      if cont == true then
+        temptable[j] = num
+        j = j + 1
+      end
+    end
+  end
+  return temptable
+end
+
+print(tabstr(primeUp(100000)))

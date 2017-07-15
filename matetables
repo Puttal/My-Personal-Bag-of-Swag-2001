@@ -1,0 +1,45 @@
+function tabstr(a)
+  local tempstring = " \n contents of " .. tostring(a)
+  for k, v in pairs(a) do
+    tempstring = tempstring .. "\n key : \t" .. k .. "\t value :\t" .. v
+  end
+  return tempstring
+end
+
+aTable = {"can", "you", "feel", "the", "LÖVE","2D"}
+
+pTable = {}
+
+for i = 1, 10 do
+  pTable[i] = math.random(0, 15)
+end
+
+mt = {
+  __add = function (table1, table2)
+    local sumTable = {}
+    for y = 1, #table1 do
+      if (table1[y] ~= nil) and (table2[y] ~= nil) then
+        sumTable[y] = table1[y] + table2[y]
+      else
+        sumTable[y] = 0
+      end
+    end
+    return sumTable
+  end,
+  __eq = function (table1, table2)
+     local temptable = {}
+     for y = 1, #table1 do
+       if table1[y] == table2[y] then
+         temptable[y] = true
+       else
+         temptable[y] = false
+       end
+     end
+     return temptable
+  end
+  }
+
+setmetatable(pTable, mt)
+print(pTable == pTable)
+print(tabstr(pTable))
+print(tabstr(pTable + pTable))
