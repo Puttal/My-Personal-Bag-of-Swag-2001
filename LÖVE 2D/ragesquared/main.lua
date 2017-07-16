@@ -1,10 +1,13 @@
 local timeleft = 3
 local json = require("dkjson")
 local fps = 0
+local prev = 0
 local pulsefactor = 15 --sets how big the sqaure's pulse is
 local highscore = {0}
 if love.filesystem.exists( "score.lua" ) then
-  local highscore = json.decode(love.filesystem.read( "score.lua" ))
+  local str = love.filesystem.read( "score.lua" )
+  highscore = json.decode(str)
+  print(highscore[1])
 else
   print(love.filesystem.newFile( "score.lua" ), "made new score file")
 end
@@ -58,7 +61,8 @@ function love.draw()
     love.graphics.setBackgroundColor(150-timeleft*150/timemax,0,0)
     if gamestarted == false then
       love.graphics.setColor(255,0,0)
-      love.graphics.print(string.format("Highscore : %.2f", highscore[1]), wx/2-75, wy/2 + 60, 0, 0.5)
+      love.graphics.print("Rage"..string.char(194, 178),  wx/2-50, wy/2 - 100)
+      love.graphics.print(string.format("Highscore\t: %.2f \nPrevious\t   : %.2f", highscore[1], prev), wx/2-75, wy/2 + 60, 0, 0.5)
     end
     love.graphics.setColor(255,255,255)
 end
@@ -110,9 +114,11 @@ function love.update(Dt)
     if timeleft > timemax then timeleft = timemax end
   end
   if timeleft <= 0 then
+    prev = timeplayed
     if timeplayed > highscore[1] then
       highscore[1] = timeplayed
-      print(love.filesystem.write( "score.lua", json.encode(highscore)), highscore[1])
+      local str = json.encode(highscore)
+      love.filesystem.write( "score.lua", str)
     end
     bsq.active = false
     bci.active = false
