@@ -9,7 +9,7 @@ local dots = {
     pos = { x = wx/2, y = wy/2 },
     dir = { x = 0 , y = 1 }
   },
-  {
+  --[[{
   dbo = true,
   act = true,
   pos = { x = wx/2, y = wy/2 },
@@ -20,7 +20,7 @@ dbo = true,
 act = true,
 pos = { x = wx/2, y = wy/2 },
 dir = { x = -1 , y = 0 }
-},
+},--]]
 {
 dbo = true,
 act = true,
