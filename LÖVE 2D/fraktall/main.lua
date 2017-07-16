@@ -1,3 +1,4 @@
+love.window.setFullscreen(true)
 local wx, wy = love.window.getMode()
 local color = {255,255,255}
 local scale = 10
@@ -30,7 +31,10 @@ dir = { x = 0 , y = -1 }
 }
 local str = "dots \n \n"
 function love.keypressed(key, scancode, isrepeat)
-   if key == "h" then
+    if key == "escape" then
+      love.window.close()
+    end
+    if key == "h" then
      for k = 1, #dots do
        if dots[k].act then
          local i = #dots + 1
