@@ -1,59 +1,46 @@
 love.window.setFullscreen(true)
-local caninactdbo = false
+math.randomseed(os.time())
+love.keyboard.setKeyRepeat(true)
+local caninactdbo = true
+local symmetry = true
+local symmetryy = true
 local wx, wy = love.window.getMode()
 local color = {255,255,255}
 local scale = 10
-local dots = {
-{
-  dbo = true,
-  act = true,
-  pos = { x = wx/2, y = wy/2 },
-  dir = { x = -1 , y = -1 }
-},
-{
-  dbo = true,
-  act = true,
-  pos = { x = wx/2, y = wy/2 },
-  dir = { x = -1 , y = 1 }
-},
-{
-  dbo = true,
-  act = true,
-  pos = { x = wx/2, y = wy/2 },
-  dir = { x = 1 , y = -1 }
-},
-{
-  dbo = true,
-  act = true,
-  pos = { x = wx/2, y = wy/2 },
-  dir = { x = 1 , y = 1 }
-},
-{
-  dbo = true,
-  act = true,
-  pos = { x = wx/2, y = wy/2+20 },
-  dir = { x = 1 , y = 0 }
-},
-{
-  dbo = true,
-  act = true,
-  pos = { x = wx/2, y = wy/2+20 },
-  dir = { x = -1 , y = 0 }
-},
-{
-  dbo = true,
-  act = true,
-  pos = { x = wx/2, y = wy/2-20 },
-  dir = { x = 1 , y = 0 }
-},
-{
-  dbo = true,
-  act = true,
-  pos = { x = wx/2, y = wy/2-20 },
-  dir = { x = -1 , y = 0 }
-},
-}
-local str = "dots \n \n"
+local dots = {}
+for i = 1, math.ceil(math.random(1, 4)) do
+  dots[i] = {
+    dbo = true,
+    act = true,
+    pos = { x = wx/2 + scale * math.ceil(math.random(-3,3)), y = wy/2 + scale * math.ceil(math.random(-3,3)) },
+    dir = { x = math.ceil(math.random(-1,1)), y = math.ceil(math.random(-1,1)) },
+  }
+  print(dots[i].pos.x,dots[i].pos.y,dots[i].dir.x,dots[i].dir.y)
+  print("success-ish")
+end
+print(wx,wy,"window")
+if symmetry  then for i = 1, #dots do
+  local k = #dots + 1
+  dots[k] = {
+    dbo = true,
+    act = true,
+    pos = { x = wx - dots[i].pos.x , y = wy - dots[i].pos.y },
+    dir = { x = dots[i].dir.x * -1 , y =  dots[i].dir.y * -1 }
+  }
+  print(dots[k].pos.x,dots[k].pos.y,dots[k].dir.x,dots[k].dir.y)
+  print("success")
+end end
+if symmetryy  then for i = 1, #dots do
+  local k = #dots + 1
+  dots[k] = {
+    dbo = true,
+    act = true,
+    pos = { x =dots[i].pos.x , y = wy - dots[i].pos.y },
+    dir = { x = dots[i].dir.x , y =  dots[i].dir.y * -1 }
+  }
+  print(dots[k].pos.x,dots[k].pos.y,dots[k].dir.x,dots[k].dir.y)
+  print("success")
+end end
 function love.keypressed(key, scancode, isrepeat)
     if key == "escape" then
       love.window.close()

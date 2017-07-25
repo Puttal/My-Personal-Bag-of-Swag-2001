@@ -2,7 +2,7 @@ local timeleft = 3
 local json = require("dkjson")
 local fps = 0
 local prev = 0
-local pulsefactor = 15 --sets how big the sqaure's pulse is
+local pulsefactor = 15 --sets how big the square's pulse is
 local highscore = {0}
 if love.filesystem.exists( "score.lua" ) then
   local str = love.filesystem.read( "score.lua" )
@@ -20,6 +20,7 @@ local gameover = love.audio.newSource("sfx/scratch.wav","static")
 local click = love.audio.newSource("sfx/click.wav","static")
 local timeplayed = 0
 local sqoci = false --Chooses if the bad shape is square or circle
+local badshapes = {}
 local sq = { --The square
     x = wx/2 - 50,
     y = wy/2 - 50,
@@ -27,22 +28,24 @@ local sq = { --The square
     h = 100, --Height
     color = {255,255,255}, --Color table, red, green and blue. Can also have alpha value
 }
-local bsq = { --The bad square
-active = false, --For easier drawing and checking for clicks
-x = wx/2 - 50,
-y = wy/2 - 50,
-w = 100, --Width
-h = 100, --Height
-color = {255,0,0}, --Color table, red, green and blue. Can also have alpha value
-}
-local bci = { --The bad circle
-active = false,
-x = wx/2 - 50,
-y = wy/2 - 50,
-r = 50, --Radius
-color = {255,255,255},
-}
 love.graphics.setNewFont(36)
+
+function failcheck(x , y)
+  for k, v in pairs(badshapes) do
+    if v.type == "circle" then
+      if math.pow((x - v.x), 2) + math.pow((y - v.y), 2) < math.pow(v.r, 2) then
+        return true
+      end
+    elseif  v.type == "square" then
+      if  x > v.x and
+          x < v.x + sq.w and
+          y > v.y and
+          y < v.y + sq.h then
+        return true
+      end
+    end
+  end
+end
 
 function love.draw()
   love.graphics.setColor(255,0,0)
@@ -50,13 +53,16 @@ function love.draw()
     love.graphics.setColor(sq.color) --Sets the current color
     love.graphics.rectangle("fill", sq.x - pulsestate/2, sq.y - pulsestate/2, sq.w + pulsestate, sq.h + pulsestate) --Draws the square. Fill means
     --that the whole square will be filled. "line" would draw an outline. Pulsestate added to make the pulse
-    if bsq.active then
-      love.graphics.setColor(bsq.color)
-      love.graphics.rectangle("fill", bsq.x - pulsestate/2, bsq.y - pulsestate/2, bsq.w + pulsestate, bsq.h + pulsestate)
-    end
-    if bci.active then
-      love.graphics.setColor(bci.color)
-      love.graphics.circle("fill", bci.x, bci.y, bci.r + pulsestate/2)
+    for k, v in pairs(badshapes) do
+      if v.type == "circle" then
+        love.graphics.setColor(v.color)
+        love.graphics.circle("fill", v.x, v.y, v.r + pulsestate/2)
+      end
+      if v.type == "square" then
+        love.graphics.setColor(v.color)
+        love.graphics.rectangle("fill", v.x - pulsestate/2, v.y - pulsestate/2, v.w + pulsestate, v.h + pulsestate)
+        print("drew a square")
+      end
     end
     love.graphics.setBackgroundColor(150-timeleft*150/timemax,0,0)
     if gamestarted == false then
@@ -82,33 +88,38 @@ function love.mousepressed(x, y, button)
              bgmusic:play()
              click:stop()
              click:play()
-             if timeplayed > 15 then --bad shapes start appearing
-               sqoci = 0 == math.ceil(math.random(0, 100)) % 2
-               bsq.active = not sqoci
-               bci.active = sqoci
-               bsq.x = math.random(pulsefactor, wx - bsq.w - pulsefactor)
-               bsq.y = math.random(pulsefactor, wy - bsq.h - pulsefactor)
-               bci.x = math.random(pulsefactor + bci.r, wx - bci.r - pulsefactor)
-               bci.y = math.random(pulsefactor + bci.r, wy - bci.r - pulsefactor)
-             end
-          else if bsq.active and
-             x > bsq.x and
-             x < bsq.x + bsq.w and
-             y > bsq.y and
-             y < bsq.y + bsq.h then
-              timeleft = 0
-          else if bci.active and
-            bci.r > math.sqrt(math.pow(x - bci.x, 2) + math.pow(y - bci.y, 2)) then
-              timeleft = 0
+             for i = 1, math.floor(timeplayed/15) do
+               if math.random(0, 2) > 1 then
+                 local tempradius = 50
+                 badshapes[i] =
+                {
+                  type = "circle",
+                  x = math.random(pulsefactor + tempradius, wx - tempradius - pulsefactor),
+                  y = math.random(pulsefactor + tempradius, wy - tempradius - pulsefactor),
+                  r = tempradius,
+                  color = {255,255,255}
+                }
+               else
+                 local tempwidth = 100
+                 local tempheight = 100
+                 badshapes[i] =
+                {
+                  type = "square",
+                  x = math.random(pulsefactor, wx - tempwidth - pulsefactor),
+                  y = math.random(pulsefactor, wy - tempheight - pulsefactor),
+                  w = tempwidth,
+                  h = tempheight,
+                  color = {255,0,0}
+                }
+               end
             end
-          end
         end
     end
 end
 
 function love.update(Dt)
   if gamestarted then
-    timeleft = timeleft - Dt * (30+timeplayed)/30
+    timeleft = timeleft - Dt * (120+timeplayed)/120
     timeplayed = timeplayed + Dt
     pulsestate = pulsefactor * (math.abs(math.sin(4*math.pi*timeplayed))+math.abs(math.sin(2*math.pi*(timeplayed+0.125)))+math.abs(math.sin(math.pi*(timeplayed+0.375))))/3
     if timeleft > timemax then timeleft = timemax end
@@ -120,8 +131,6 @@ function love.update(Dt)
       local str = json.encode(highscore)
       love.filesystem.write( "score.lua", str)
     end
-    bsq.active = false
-    bci.active = false
     love.audio.stop( )
     gameover:play()
     gamestarted = false
@@ -134,6 +143,7 @@ function love.update(Dt)
       h = 100, --Height
       color = {255,255,255}, --Color table, red, green and blue. Can also have alpha value
     }
+    badshapes = {}
     love.graphics.setBackgroundColor(0,0,0)
   end
 end
