@@ -1,7 +1,18 @@
 local bg = love.graphics.newImage("blackground.png")
+local sprite = love.graphics.newImage("sprirsprite.png")
+local sprites = {
+  love.graphics.newQuad(0, 0, 32, 64, sprite:getDimensions()),
+  love.graphics.newQuad(32, 0, 32, 64, sprite:getDimensions()),
+  love.graphics.newQuad(64, 0, 32, 64, sprite:getDimensions()),
+  love.graphics.newQuad(96, 0, 32, 64, sprite:getDimensions()),
+  love.graphics.newQuad(0, 64, 32, 64, sprite:getDimensions()),
+  love.graphics.newQuad(32, 64, 32, 64, sprite:getDimensions()),
+  love.graphics.newQuad(64, 64, 32, 64, sprite:getDimensions()),
+  love.graphics.newQuad(96, 64, 32, 64, sprite:getDimensions()),
+}
 love.window.setMode( 1080, 720, {vsync = false} )
 local wx, wy = love.window.getMode()
-local worldx, worldy = 1024, 512
+local worldx, worldy = 2048, 1024
 local bgscalex, bgscaley = worldx/bg:getWidth(), worldy/bg:getHeight( )
 local compx, compy
 local mx, my = {0,0}
@@ -13,7 +24,7 @@ end
 local ent = {
   player = {
     type = "rectangle",
-    drawmode = "fill",
+    drawmode = "line",
     grav = true,
     move = true,
     pos = {worldx/2-16, worldy/2+32},
@@ -23,9 +34,12 @@ local ent = {
     width = 32,
     color = {255,255,255},
     speed = 750,
-    jumpcount = 2,
+    slide = 250,
+    jumpcount = 5,
     curjumps = 0,
     canjump = true,
+    maneuver = 1500,
+    sprite = 1,
     },
   blinker = {
     type = "circle",
@@ -33,6 +47,7 @@ local ent = {
     r = 5,
     pos = {0,0},
     active = true,
+    speed = 1000,
     color = {0,0,255},
     range = 250,
   },
@@ -64,12 +79,33 @@ function love.update(Dt)
     ent.blinker.pos[2] = my
   end
 
-  if love.keyboard.isDown("a") and not love.keyboard.isDown("d") then
-    ent.player.vel[1] = -ent.player.speed
-  elseif love.keyboard.isDown("d") and not love.keyboard.isDown("a") then
-    ent.player.vel[1] = ent.player.speed
-  else
+  if love.keyboard.isDown("a") and not love.keyboard.isDown("d") and -ent.player.vel[1] <= ent.player.speed then
+    if ent.player.pos[2] >= worldy - ent.player.height or ent.player.pos[1] >= worldx - ent.player.width or ent.player.pos[1] <= 0  then
+      ent.player.vel[1] = -ent.player.speed
+    else
+      ent.player.vel[1] = ent.player.vel[1] -ent.player.maneuver * Dt
+    end
+    if ent.player.pos[2] >= worldy - ent.player.height then
+      ent.player.sprite = 3
+    else
+      ent.player.sprite = 7
+    end
+  elseif love.keyboard.isDown("d") and not love.keyboard.isDown("a") and ent.player.vel[1] <= ent.player.speed then
+    if ent.player.pos[2] >= worldy - ent.player.height or ent.player.pos[1] >= worldx - ent.player.width or ent.player.pos[1] <= 0  then
+      ent.player.vel[1] = ent.player.speed
+    else
+      ent.player.vel[1] = ent.player.vel[1] + ent.player.maneuver * Dt
+    end
+    if ent.player.pos[2] >= worldy - ent.player.height then
+      ent.player.sprite = 2
+    else
+      ent.player.sprite = 6
+    end
+  elseif ent.player.pos[2] >= worldy - ent.player.height or ent.player.pos[1] >= worldx - ent.player.width or ent.player.pos[1] <= 0 then
     ent.player.vel[1] = 0
+    ent.player.sprite = 1
+  else
+    ent.player.sprite = 8
   end
 
   if love.keyboard.isDown("w") and ent.player.curjumps ~= 0 and ent.player.canjump then
@@ -80,16 +116,33 @@ function love.update(Dt)
   if not love.keyboard.isDown("w") then
     ent.player.canjump = true
   end
-  if ent.player.pos[1] >= worldx - ent.player.width or ent.player.pos[1] <= 0 or ent.player.pos[2] >= worldy - ent.player.height then
+  if math.abs(ent.player.vel[1]) < 250 and ent.player.vel[2] < -50 then
+    ent.player.sprite = 4
+  end
+
+  if ent.player.pos[1] >= worldx - ent.player.width or ent.player.pos[1] <= 0 then
     ent.player.curjumps = ent.player.jumpcount
+    if ent.player.vel[2] > 0 then
+      ent.player.vel[2] = ent.player.slide
+    else
+      ent.player.vel[2] = ent.player.vel[2] - ent.player.vel[2] * 0,75 / Dt
+    end
+  end
+
+  if ent.player.pos[2] >= worldy - ent.player.height then
+    ent.player.curjumps = ent.player.jumpcount
+    if ent.player.vel[2] > 0 then ent.player.vel[2] = 0 end
+  elseif
+    ent.player.pos[2] <= 0 then
+    ent.player.vel[2] = 0
   end
 
   if love.keyboard.isDown("s") and ent.player.curjumps ~= 0 and ent.blinker.active then
-    ent.player.pos[1] = ent.blinker.pos[1] - ent.player.width/2
-    ent.player.pos[2] = ent.blinker.pos[2] - ent.player.height/2
-    ent.player.vel[2] = 0
+    ent.player.vel[1] = aimvec[1] * ent.blinker.speed
+    ent.player.vel[2] = aimvec[2] * ent.blinker.speed
     ent.blinker.active = false
     ent.player.curjumps = ent.player.curjumps - 1
+    ent.player.sprite = 5
   end
   if not love.keyboard.isDown("s") then
     ent.blinker.active = true
@@ -121,6 +174,9 @@ function love.draw()
     elseif v.type == "circle" then
       love.graphics.setColor(v.color)
       love.graphics.circle(v.drawmode, v.pos[1] + compx, v.pos[2] + compy, v.r)
+    end
+    if v.sprite ~= nil then
+      love.graphics.draw(sprite, sprites[v.sprite], v.pos[1] + compx, v.pos[2] + compy)
     end
   end
   love.graphics.setColor(255,255,255)
