@@ -32,7 +32,7 @@ local ent = {
     vel = {0,0},
     height = 64,
     width = 32,
-    color = {255,255,255},
+    color = {255,255,255,0},
     speed = 750,
     slide = 250,
     jumpcount = 5,
@@ -70,7 +70,10 @@ function love.update(Dt)
   aimvec[1] = (mx - playerpos[1]) / math.sqrt(math.pow(playerpos[1] - mx, 2) + math.pow(playerpos[2] - my, 2))
   aimvec[2] = (my - playerpos[2]) / math.sqrt(math.pow(playerpos[1] - mx, 2) + math.pow(playerpos[2] - my, 2))
   compx, compy = wx/2 - playerpos[1], wy/2 - playerpos[2]
+  local onwall = ent.player.pos[1] >= worldx - ent.player.width or ent.player.pos[1] <= 0
+  local onfloor = ent.player.pos[2] >= worldy - ent.player.height
 
+  --set the position of the "blinker"
   if math.sqrt(math.pow(playerpos[1] - mx, 2) + math.pow(playerpos[2] - my, 2)) > ent.blinker.range then
     ent.blinker.pos[1] = playerpos[1] + aimvec[1] * ent.blinker.range
     ent.blinker.pos[2] = playerpos[2] + aimvec[2] * ent.blinker.range
@@ -79,8 +82,9 @@ function love.update(Dt)
     ent.blinker.pos[2] = my
   end
 
+  --left-right movement control and sprites
   if love.keyboard.isDown("a") and not love.keyboard.isDown("d") and -ent.player.vel[1] <= ent.player.speed then
-    if ent.player.pos[2] >= worldy - ent.player.height or ent.player.pos[1] >= worldx - ent.player.width or ent.player.pos[1] <= 0  then
+    if onfloor or onwall then
       ent.player.vel[1] = -ent.player.speed
     else
       ent.player.vel[1] = ent.player.vel[1] -ent.player.maneuver * Dt
@@ -91,23 +95,24 @@ function love.update(Dt)
       ent.player.sprite = 7
     end
   elseif love.keyboard.isDown("d") and not love.keyboard.isDown("a") and ent.player.vel[1] <= ent.player.speed then
-    if ent.player.pos[2] >= worldy - ent.player.height or ent.player.pos[1] >= worldx - ent.player.width or ent.player.pos[1] <= 0  then
+    if onfloor or onwall  then
       ent.player.vel[1] = ent.player.speed
     else
       ent.player.vel[1] = ent.player.vel[1] + ent.player.maneuver * Dt
     end
-    if ent.player.pos[2] >= worldy - ent.player.height then
+    if onfloor then
       ent.player.sprite = 2
     else
       ent.player.sprite = 6
     end
-  elseif ent.player.pos[2] >= worldy - ent.player.height or ent.player.pos[1] >= worldx - ent.player.width or ent.player.pos[1] <= 0 then
-    ent.player.vel[1] = 0
+  elseif onfloor then
     ent.player.sprite = 1
+    ent.player.vel[1] = 0
   else
     ent.player.sprite = 8
   end
 
+  --jumping
   if love.keyboard.isDown("w") and ent.player.curjumps ~= 0 and ent.player.canjump then
     ent.player.vel[2] = -800
     ent.player.canjump = false
@@ -116,11 +121,14 @@ function love.update(Dt)
   if not love.keyboard.isDown("w") then
     ent.player.canjump = true
   end
+
+  --jumping sprite
   if math.abs(ent.player.vel[1]) < 250 and ent.player.vel[2] < -50 then
     ent.player.sprite = 4
   end
 
-  if ent.player.pos[1] >= worldx - ent.player.width or ent.player.pos[1] <= 0 then
+  --wall sliding
+  if onwall then
     ent.player.curjumps = ent.player.jumpcount
     if ent.player.vel[2] > 0 then
       ent.player.vel[2] = ent.player.slide
@@ -129,14 +137,12 @@ function love.update(Dt)
     end
   end
 
-  if ent.player.pos[2] >= worldy - ent.player.height then
+  --floor behaviour
+  if onfloor then
     ent.player.curjumps = ent.player.jumpcount
-    if ent.player.vel[2] > 0 then ent.player.vel[2] = 0 end
-  elseif
-    ent.player.pos[2] <= 0 then
-    ent.player.vel[2] = 0
   end
 
+  --dash ability
   if love.keyboard.isDown("s") and ent.player.curjumps ~= 0 and ent.blinker.active then
     ent.player.vel[1] = aimvec[1] * ent.blinker.speed
     ent.player.vel[2] = aimvec[2] * ent.blinker.speed
@@ -148,19 +154,49 @@ function love.update(Dt)
     ent.blinker.active = true
   end
 
+  --physics
   for k, v in pairs(ent) do
+    --gravity
     if v.grav == true then
       v.vel[2] = v.vel[2] + 1600 * Dt
     end
+    --movement
     if v.move then
       v.pos[1], v.pos[2] = v.pos[1] + v.vel[1] * Dt , v.pos[2] + v.vel[2] * Dt
     end
+    --collision (rectangles)
     if v.type == "rectangle" then
       v.pos[1], v.pos[2] = clamp(v.pos[1],0 ,worldx - v.width ), clamp(v.pos[2],0 ,worldy - v.height )
+      if v.move then
+        if (v.pos[2] <= 0 and v.vel[2] < 0 ) or (v.pos[2] + v.height >= worldy and v.vel[2] > 0) then
+          v.vel[2] = 0
+        end
+        if (v.pos[1] + v.width >= worldx and v.vel[1] > 0) or (v.pos[1] <= 0 and v.vel[1] < 0) then
+          v.vel[1] = 0
+        end
+      end
+    --collision (circles)
     elseif v.type == "circle" then
       v.pos[1], v.pos[2] = clamp(v.pos[1],v.r ,worldx ), clamp(v.pos[2],v.r ,worldy - v.r )
+      if v.move then
+        if (v.pos[2] - v.r <= 0 and v.vel[2] < 0 ) or (v.pos[2] + v.r >= worldy and v.vel[2] > 0) then
+          v.vel[2] = 0
+        end
+        if (v.pos[1] + v.r >= worldx and v.vel[1] > 0) or (v.pos[1] - v.r <= 0 and v.vel[1] < 0) then
+          v.vel[1] = 0
+        end
+      end
+    --collision(undefined)
     else
       v.pos[1], v.pos[2] = clamp(v.pos[1],0 ,worldx ), clamp(v.pos[2],0 ,worldy )
+      if v.move then
+        if (v.pos[2] <= 0 and v.vel[2] < 0 ) or (v.pos[2] >= worldy and v.vel[2] > 0) then
+          v.vel[2] = 0
+        end
+        if (v.pos[1] >= worldx and v.vel[1] > 0) or (v.pos[1] <= 0 and v.vel[1] < 0) then
+          v.vel[1] = 0
+        end
+      end
     end
   end
 end
@@ -175,10 +211,10 @@ function love.draw()
       love.graphics.setColor(v.color)
       love.graphics.circle(v.drawmode, v.pos[1] + compx, v.pos[2] + compy, v.r)
     end
+    love.graphics.setColor(255,255,255)
     if v.sprite ~= nil then
       love.graphics.draw(sprite, sprites[v.sprite], v.pos[1] + compx, v.pos[2] + compy)
     end
   end
-  love.graphics.setColor(255,255,255)
-  love.graphics.line(playerpos[1] + compx, playerpos[2] + compy, ent.blinker.pos[1] + compx, ent.blinker.pos[2] + compy)
+  --love.graphics.line(playerpos[1] + compx, playerpos[2] + compy, ent.blinker.pos[1] + compx, ent.blinker.pos[2] + compy)
 end
