@@ -5,11 +5,29 @@ local sprites = {
   love.graphics.newQuad(32, 0, 32, 64, sprite:getDimensions()),
   love.graphics.newQuad(64, 0, 32, 64, sprite:getDimensions()),
   love.graphics.newQuad(96, 0, 32, 64, sprite:getDimensions()),
+  love.graphics.newQuad(128, 0, 32, 64, sprite:getDimensions()),
   love.graphics.newQuad(0, 64, 32, 64, sprite:getDimensions()),
   love.graphics.newQuad(32, 64, 32, 64, sprite:getDimensions()),
   love.graphics.newQuad(64, 64, 32, 64, sprite:getDimensions()),
   love.graphics.newQuad(96, 64, 32, 64, sprite:getDimensions()),
+  love.graphics.newQuad(128, 64, 32, 64, sprite:getDimensions()),
+  {
+    love.graphics.newQuad(0, 128, 32, 64, sprite:getDimensions()),
+    love.graphics.newQuad(32, 128, 32, 64, sprite:getDimensions()),
+    love.graphics.newQuad(64, 128, 32, 64, sprite:getDimensions()),
+    love.graphics.newQuad(96, 128, 32, 64, sprite:getDimensions()),
+    love.graphics.newQuad(128, 128, 32, 64, sprite:getDimensions()),
+  },
+  {
+    love.graphics.newQuad(0, 192, 32, 64, sprite:getDimensions()),
+    love.graphics.newQuad(32, 192, 32, 64, sprite:getDimensions()),
+    love.graphics.newQuad(64, 192, 32, 64, sprite:getDimensions()),
+    love.graphics.newQuad(96, 192, 32, 64, sprite:getDimensions()),
+    love.graphics.newQuad(128, 192, 32, 64, sprite:getDimensions()),
+  },
 }
+local animtim = 0
+local animphase = 1
 love.window.setMode( 1080, 720, {vsync = false} )
 local wx, wy = love.window.getMode()
 local worldx, worldy = 2048, 1024
@@ -73,6 +91,17 @@ function love.update(Dt)
   local onwall = ent.player.pos[1] >= worldx - ent.player.width or ent.player.pos[1] <= 0
   local onfloor = ent.player.pos[2] >= worldy - ent.player.height
 
+  --set the phase of animations
+  if animtim >= 1 then
+    aimtim = animtim - 1
+    if animphase < 5 then
+      animphase = animphase + 1
+    else
+      animphase = 1
+    end
+  end
+  animtim = animtim + Dt
+
   --set the position of the "blinker"
   if math.sqrt(math.pow(playerpos[1] - mx, 2) + math.pow(playerpos[2] - my, 2)) > ent.blinker.range then
     ent.blinker.pos[1] = playerpos[1] + aimvec[1] * ent.blinker.range
@@ -89,10 +118,10 @@ function love.update(Dt)
     else
       ent.player.vel[1] = ent.player.vel[1] -ent.player.maneuver * Dt
     end
-    if ent.player.pos[2] >= worldy - ent.player.height then
-      ent.player.sprite = 3
+    if onfloor then
+      ent.player.sprite = 12
     else
-      ent.player.sprite = 7
+      ent.player.sprite = 8
     end
   elseif love.keyboard.isDown("d") and not love.keyboard.isDown("a") and ent.player.vel[1] <= ent.player.speed then
     if onfloor or onwall  then
@@ -101,9 +130,9 @@ function love.update(Dt)
       ent.player.vel[1] = ent.player.vel[1] + ent.player.maneuver * Dt
     end
     if onfloor then
-      ent.player.sprite = 2
+      ent.player.sprite = 11
     else
-      ent.player.sprite = 6
+      ent.player.sprite = 7
     end
   elseif onfloor then
     ent.player.sprite = 1
@@ -218,7 +247,11 @@ function love.draw()
     end
     love.graphics.setColor(255,255,255)
     if v.sprite ~= nil then
-      love.graphics.draw(sprite, sprites[v.sprite], v.pos[1] + compx, v.pos[2] + compy)
+       if type(sprites[v.sprite]) == "table" then
+         love.graphics.draw(sprite, sprites[v.sprite][animphase], v.pos[1] + compx, v.pos[2] + compy)
+       else
+         love.graphics.draw(sprite, sprites[v.sprite], v.pos[1] + compx, v.pos[2] + compy)
+       end
     end
   end
   --love.graphics.line(playerpos[1] + compx, playerpos[2] + compy, ent.blinker.pos[1] + compx, ent.blinker.pos[2] + compy)
