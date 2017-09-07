@@ -12,6 +12,7 @@ local sprites = {
   love.graphics.newQuad(96, 64, 32, 64, sprite:getDimensions()),
   love.graphics.newQuad(128, 64, 32, 64, sprite:getDimensions()),
   {
+    5,
     love.graphics.newQuad(0, 128, 32, 64, sprite:getDimensions()),
     love.graphics.newQuad(32, 128, 32, 64, sprite:getDimensions()),
     love.graphics.newQuad(64, 128, 32, 64, sprite:getDimensions()),
@@ -19,6 +20,7 @@ local sprites = {
     love.graphics.newQuad(128, 128, 32, 64, sprite:getDimensions()),
   },
   {
+    5,
     love.graphics.newQuad(0, 192, 32, 64, sprite:getDimensions()),
     love.graphics.newQuad(32, 192, 32, 64, sprite:getDimensions()),
     love.graphics.newQuad(64, 192, 32, 64, sprite:getDimensions()),
@@ -27,7 +29,8 @@ local sprites = {
   },
 }
 local animtim = 0
-local animphase = 1
+local animphase = 0
+local timestep = 0.1
 love.window.setMode( 1080, 720, {vsync = false} )
 local wx, wy = love.window.getMode()
 local worldx, worldy = 2048, 1024
@@ -92,8 +95,8 @@ function love.update(Dt)
   local onfloor = ent.player.pos[2] >= worldy - ent.player.height
 
   --set the phase of animations
-  if animtim >= 1 then
-    aimtim = animtim - 1
+  if animtim >= timestep then
+    animtim = animtim - timestep
     if animphase < 5 then
       animphase = animphase + 1
     else
@@ -120,8 +123,6 @@ function love.update(Dt)
     end
     if onfloor then
       ent.player.sprite = 12
-    else
-      ent.player.sprite = 8
     end
   elseif love.keyboard.isDown("d") and not love.keyboard.isDown("a") and ent.player.vel[1] <= ent.player.speed then
     if onfloor or onwall  then
@@ -131,14 +132,10 @@ function love.update(Dt)
     end
     if onfloor then
       ent.player.sprite = 11
-    else
-      ent.player.sprite = 7
     end
   elseif onfloor then
     ent.player.sprite = 1
     ent.player.vel[1] = 0
-  else
-    ent.player.sprite = 8
   end
 
   --jumping
@@ -152,12 +149,42 @@ function love.update(Dt)
   end
 
   --jumping sprite
-  if math.abs(ent.player.vel[1]) < 250 and ent.player.vel[2] < -50 then
-    ent.player.sprite = 4
+  if not onfloor then
+    if ent.player.vel[2] < 0 then
+      --going up
+      if ent.player.vel[1] > 0 then
+        ent.player.sprite = 2
+      else
+        ent.player.sprite = 3
+      end
+    else
+      --going down
+      if ent.player.vel[1] > 0 then
+        ent.player.sprite = 9
+      else
+        ent.player.sprite = 10
+      end
+    end
+    if onwall and love.keyboard.isDown("a") ~= love.keyboard.isDown("d") then
+      --on a wall
+      if ent.player.pos[1] < worldx/2 then
+        ent.player.sprite = 2
+      else
+        ent.player.sprite = 3
+      end
+    end
+  end
+  --going straight up or straight down
+  if math.abs(ent.player.vel[1]) < 250 and not onfloor then
+    if ent.player.vel[2] < 0 then
+      ent.player.sprite = 5
+    else
+      ent.player.sprite = 6
+    end
   end
 
   --wall sliding
-  if onwall then
+  if onwall and love.keyboard.isDown("a") ~= love.keyboard.isDown("d") then
     ent.player.curjumps = ent.player.jumpcount
     if ent.player.vel[2] > 0 then
       ent.player.vel[2] = ent.player.slide
@@ -177,7 +204,6 @@ function love.update(Dt)
     ent.player.vel[2] = aimvec[2] * ent.blinker.speed
     ent.blinker.active = false
     ent.player.curjumps = ent.player.curjumps - 1
-    ent.player.sprite = 5
   end
   if not love.keyboard.isDown("s") then
     ent.blinker.active = true
@@ -248,7 +274,8 @@ function love.draw()
     love.graphics.setColor(255,255,255)
     if v.sprite ~= nil then
        if type(sprites[v.sprite]) == "table" then
-         love.graphics.draw(sprite, sprites[v.sprite][animphase], v.pos[1] + compx, v.pos[2] + compy)
+         local i = animphase % sprites[v.sprite][1] + 2
+         love.graphics.draw(sprite, sprites[v.sprite][i], v.pos[1] + compx, v.pos[2] + compy)
        else
          love.graphics.draw(sprite, sprites[v.sprite], v.pos[1] + compx, v.pos[2] + compy)
        end
