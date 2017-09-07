@@ -154,6 +154,11 @@ function love.update(Dt)
     ent.blinker.active = true
   end
 
+  --escape key to quit
+  if love.keyboard.isDown("escape") then
+    love.event.quit()
+  end
+
   --physics
   for k, v in pairs(ent) do
     --gravity
